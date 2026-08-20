@@ -25,7 +25,7 @@ if sys.platform == "win32":
 # ──────────────────────────────────────
 # English STT: OpenAI Whisper
 # ──────────────────────────────────────
-DEFAULT_WHISPER_MODEL = "small"
+DEFAULT_WHISPER_MODEL = "tiny"
 _whisper_cache = {}
 
 
@@ -186,10 +186,14 @@ def speech_to_text(
     if not os.path.exists(audio_path):
         raise FileNotFoundError(f"Audio file not found: {audio_path}")
 
-    if language == "kn":
-        return _kannada_stt(audio_path)
-    else:
-        return _english_stt(audio_path, model_size)
+    import gc
+    try:
+        if language == "kn":
+            return _kannada_stt(audio_path)
+        else:
+            return _english_stt(audio_path, model_size)
+    finally:
+        gc.collect()
 
 
 if __name__ == "__main__":
