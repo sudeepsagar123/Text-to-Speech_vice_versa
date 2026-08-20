@@ -18,8 +18,11 @@ WORKDIR /app
 # Copy requirements
 COPY requirements.txt .
 
+# Upgrade pip, setuptools, and wheel
+RUN pip install --no-cache-dir --upgrade pip setuptools wheel
+
 # Install CPU PyTorch first (faster download & smaller image size) followed by other requirements
-RUN pip install --no-cache-dir torch torchaudio --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir torch torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy application files
