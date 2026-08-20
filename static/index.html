@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="VoiceCraft AI — Bilingual Text-to-Speech and Speech-to-Text for English & Kannada (ಕನ್ನಡ).">
+    <title>VoiceCraft AI — English & Kannada TTS + STT</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+
+<body>
+
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header__badge">
+                <span class="dot"></span>
+                AI-Powered Voice Engine
+            </div>
+            <h1 class="header__title">VoiceCraft AI</h1>
+            <p class="header__subtitle">Convert text to speech and transcribe audio — English & Kannada (ಕನ್ನಡ)</p>
+        </header>
+
+        <!-- Main Grid -->
+        <div class="main-grid">
+
+            <!-- ===== TTS Card ===== -->
+            <section class="card card--tts" id="tts-section">
+                <div class="card__icon">🔊</div>
+                <h2 class="card__title">Text → Speech</h2>
+                <p class="card__desc">Enter text and convert it to natural speech</p>
+
+                <!-- Language Toggle -->
+                <div class="form-group">
+                    <label class="form-label">Language</label>
+                    <div class="lang-toggle" id="tts-lang-toggle">
+                        <button class="lang-btn active" data-lang="en" onclick="setTTSLang('en')">English</button>
+                        <button class="lang-btn" data-lang="kn" onclick="setTTSLang('kn')">ಕನ್ನಡ</button>
+
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="tts-text">Your Text</label>
+                    <textarea class="textarea" id="tts-text"
+                        placeholder="Paste your text here... supports long paragraphs, articles, and more."
+                        spellcheck="false"></textarea>
+                    <div class="char-counter" id="tts-char-count">0 characters</div>
+                </div>
+
+                <!-- Voice selector (English only) -->
+                <div class="form-group" id="tts-voice-group">
+                    <label class="form-label" for="tts-voice">Voice</label>
+                    <div class="select-wrapper">
+                        <select class="select" id="tts-voice">
+                            <option value="female">🎙️ Female (Indian English)</option>
+                            <option value="male">🎙️ Male (Indian English)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button class="btn btn--primary" id="tts-btn" onclick="handleTTS()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Convert to Speech</span>
+                </button>
+
+                <!-- TTS Status -->
+                <div class="status" id="tts-status"></div>
+
+                <!-- Audio Player -->
+                <div class="audio-player" id="tts-player">
+                    <audio controls id="tts-audio"></audio>
+                    <div class="audio-player__meta" id="tts-meta"></div>
+                </div>
+            </section>
+
+            <!-- ===== STT Card ===== -->
+            <section class="card card--stt" id="stt-section">
+                <div class="card__icon">📝</div>
+                <h2 class="card__title">Speech → Text</h2>
+                <p class="card__desc">Upload audio or record your voice to transcribe</p>
+
+                <!-- Language Toggle -->
+                <div class="form-group">
+                    <label class="form-label">Language</label>
+                    <div class="lang-toggle" id="stt-lang-toggle">
+                        <button class="lang-btn active" data-lang="en" onclick="setSTTLang('en')">English</button>
+                        <button class="lang-btn" data-lang="kn" onclick="setSTTLang('kn')">ಕನ್ನಡ</button>
+
+                    </div>
+                </div>
+
+                <!-- Record Button -->
+                <div class="record-section">
+                    <button class="btn btn--record" id="record-btn" onclick="toggleRecording()">
+                        <span id="record-icon">🎤</span>
+                        <span id="record-text">Start Recording</span>
+                    </button>
+                </div>
+
+                <div class="or-divider">or upload a file</div>
+
+                <!-- File Upload -->
+                <div class="form-group">
+                    <div class="upload-zone" id="upload-zone">
+                        <div class="upload-zone__icon">📁</div>
+                        <div class="upload-zone__text">Drag & drop audio file here</div>
+                        <div class="upload-zone__hint">MP3, WAV, FLAC, OGG — any length</div>
+                        <input type="file" id="stt-file" accept="audio/*" onchange="handleFileSelect(this)">
+                    </div>
+                    <div class="file-info" id="file-info">
+                        <span>🎵</span>
+                        <span class="file-info__name" id="file-name"></span>
+                        <button class="file-info__remove" onclick="removeFile()" title="Remove file">✕</button>
+                    </div>
+                </div>
+
+                <button class="btn btn--primary" id="stt-btn" onclick="handleSTT()">
+                    <span class="spinner"></span>
+                    <span class="btn-text">Transcribe Audio</span>
+                </button>
+
+                <!-- STT Status -->
+                <div class="status" id="stt-status"></div>
+
+                <!-- Transcript Output -->
+                <div class="transcript-output" id="transcript-output">
+                    <div class="transcript-output__header">
+                        <span class="transcript-output__title">📝 Transcript</span>
+                        <button class="transcript-output__copy" onclick="copyTranscript()">📋 Copy</button>
+                    </div>
+                    <div class="transcript-output__text" id="transcript-text"></div>
+                    <div class="transcript-output__meta" id="transcript-meta"></div>
+                </div>
+            </section>
+
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            VoiceCraft AI — English & Kannada
+        </footer>
+    </div>
+
+    <script src="/static/script.js"></script>
+</body>
+
+</html>

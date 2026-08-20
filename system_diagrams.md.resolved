@@ -1,0 +1,172 @@
+# System Diagrams for VoiceForge AI
+
+Here are the diagrams you requested for your system design report. You can use these Mermaid codes in any Markdown viewer (like GitHub or Notion) or a tool like [Mermaid Live Editor](https://mermaid.live/) to export them as high-quality PNG/SVG images for your document.
+
+## 4.2 SYSTEM ARCHITECTURE DIAGRAM
+
+```mermaid
+graph TD
+    %% VoiceForge AI High Level Architecture
+    
+    subgraph "Client Interface"
+        UI[User / API Client]
+        UI_TXT[Text Input] -.-> UI
+        UI_AUD[Audio Input] -.-> UI
+    end
+
+    subgraph "Core Backend Services"
+        subgraph "Text-to-Speech Engine (VITS2)"
+            T_NORM[Text Normalizer]
+            T_ENC[Transformer Text Encoder]
+            MAS[Duration Predictor & Alignment]
+            T_DEC[HiFi-GAN Vocoder]
+            
+            T_NORM --> T_ENC --> MAS --> T_DEC
+        end
+
+        subgraph "Speech-to-Text Engine (Conformer-CTC)"
+            VAD[Energy-based VAD / Segmenter]
+            FEAT[Audio Feature Extractor]
+            S_ENC[Conformer Encoder Blocks]
+            S_DEC[CTC Beam Search Decoder]
+            
+            VAD --> FEAT --> S_ENC --> S_DEC
+        end
+    end
+
+    subgraph "Storage & Data Layer"
+        CP[Model Checkpoints]
+        DS[Training Datasets]
+    end
+
+    UI --> |Raw Text| T_NORM
+    UI --> |Raw Audio| VAD
+    
+    T_DEC --> |Synthesized Audio| UI
+    S_DEC --> |Transcribed Text| UI
+
+    CP -.-> |Loads Weights| T_ENC
+    CP -.-> |Loads Weights| S_ENC
+    DS -.-> |Offline Training| Core Backend Services
+```
+
+---
+
+## 4.3 WORKFLOW DIAGRAM
+
+```mermaid
+flowchart TD
+    %% Combined Inference Workflow
+    
+    Start((Start)) --> Choice{Select Process}
+    
+    %% TTS Workflow
+    Choice -->|Generate Audio| TTS_1[Receive Input Text string]
+    TTS_1 --> TTS_2[Clean & Normalize Text]
+    TTS_2 --> TTS_3[Convert Characters to IDs]
+    TTS_3 --> TTS_4[Predict Rhythm via Duration Predictor]
+    TTS_4 --> TTS_5[Synthesize Audio via HiFi-GAN]
+    TTS_5 --> TTS_6[Apply Volume Normalization]
+    TTS_6 --> TTS_7[Crossfade Segments for Long Text]
+    TTS_7 --> TTS_End(((Output Audio WAV)))
+    
+    %% STT Workflow
+    Choice -->|Transcribe Audio| STT_1[Receive Input Audio Stream]
+    STT_1 --> STT_2[Resample to 16kHz & Mono Convert]
+    STT_2 --> STT_3{Audio > 30s?}
+    STT_3 -- Yes --> STT_4a[Split audio via VAD Chunking]
+    STT_3 -- No --> STT_4b[Process entire audio block]
+    
+    STT_4a --> STT_5
+    STT_4b --> STT_5
+    
+    STT_5[Extract 80-Mel & 3D Pitch Features]
+    STT_5 --> STT_6[Downsample via Conv2D Subsampling]
+    STT_6 --> STT_7[Extract Context via Conformer Layers]
+    STT_7 --> STT_8[Decode Probabilities via CTC Beam Search]
+    STT_8 --> STT_9[Merge Overlapping Text Chunks]
+    STT_9 --> STT_End(((Output Transcript Text)))
+```
+
+---
+
+## 4.4 CLASS DIAGRAM
+
+```mermaid
+classDiagram
+    %% Core Model and Preprocessing Classes
+    
+    class TextNormalizer {
+        +String language
+        +normalize(text: String) String
+        -_clean_whitespace(text: String) String
+        -_expand_abbreviations(text: String) String
+        -_expand_currency(text: String) String
+        -_expand_numbers(text: String) String
+    }
+
+    class AudioProcessor {
+        +int sample_rate
+        +int n_fft
+        +int n_mels
+        +load_audio(path: String) Tensor
+        +get_mel_spectrogram(waveform: Tensor) Tensor
+        +get_linear_spectrogram(waveform: Tensor) Tensor
+        +extract_features(waveform: Tensor) Tensor
+    }
+
+    class STTDataset {
+        +String manifest_path
+        +__init__(manifest_path, audio_processor)
+        +__getitem__(idx: int) Dict
+        +__len__() int
+    }
+
+    class TTSDataset {
+        +String filelist_path
+        +__init__(filelist_path, audio_processor, text_normalizer)
+        +__getitem__(idx: int) Dict
+        +__len__() int
+    }
+
+    class VITS2 {
+        +int vocab_size
+        +forward(x, x_lengths, y, y_lengths) Dict
+        +infer(x, x_lengths, noise_scale, length_scale) Tensor
+    }
+
+    class TextEncoder {
+        +forward(x, x_lengths) Tensor
+    }
+    
+    class HiFiGANGenerator {
+        +forward(x) Tensor
+    }
+
+    class ConformerCTC {
+        +int vocab_size
+        +forward(features, feat_lengths) Tensor
+        +decode(features, feat_lengths) List~Int~
+        +beam_decode(features, feat_lengths, beam_width) List~Int~
+    }
+    
+    class ConformerEncoder {
+        +forward(x, mask) Tensor
+    }
+
+    class CTCLoss {
+        +int blank_id
+        +forward(log_probs, targets, input_len, target_len) float
+    }
+
+    %% Relationships
+    TTSDataset --> TextNormalizer : Uses
+    TTSDataset --> AudioProcessor : Uses
+    STTDataset --> AudioProcessor : Uses
+    
+    VITS2 *-- TextEncoder : Contains
+    VITS2 *-- HiFiGANGenerator : Contains
+    
+    ConformerCTC *-- ConformerEncoder : Contains
+    ConformerCTC ..> CTCLoss : Trained With
+```

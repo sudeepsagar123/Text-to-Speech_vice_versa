@@ -1,0 +1,12 @@
+edge-tts
+openai-whisper
+fastapi
+uvicorn[standard]
+python-multipart
+torch
+torchaudio
+transformers>=4.33
+accelerate
+scipy
+soundfile
+librosa
