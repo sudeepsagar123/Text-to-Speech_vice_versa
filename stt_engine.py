@@ -72,93 +72,31 @@ def _english_stt(audio_path: str, model_size: str = DEFAULT_WHISPER_MODEL) -> di
 # Kannada STT: Fine-tuned Whisper
 # (Direct model usage — no pipeline, no torchcodec)
 # ──────────────────────────────────────
-_kn_model = None
-_kn_processor = None
-
-KN_MODEL_ID = "vasista22/whisper-kannada-small"
-
-
-def _load_kannada_stt():
-    """Load and cache the Kannada Whisper model + processor."""
-    global _kn_model, _kn_processor
-    if _kn_model is None:
-        from transformers import WhisperProcessor, WhisperForConditionalGeneration
-
-        device = "cuda" if torch.cuda.is_available() else "cpu"
-        print(f"🔄 Loading Kannada STT ({KN_MODEL_ID}) on {device}...")
-
-        _kn_processor = WhisperProcessor.from_pretrained(KN_MODEL_ID)
-        _kn_model = WhisperForConditionalGeneration.from_pretrained(KN_MODEL_ID)
-        _kn_model = _kn_model.to(device)
-        _kn_model.eval()
-
-        # Force Kannada language output
-        _kn_model.config.forced_decoder_ids = _kn_processor.get_decoder_prompt_ids(
-            language="kn", task="transcribe"
-        )
-
-        print(f"✅ Kannada STT model loaded on {device}")
-    return _kn_model, _kn_processor
-
-
-def _load_audio(audio_path: str, target_sr: int = 16000):
-    """Load audio file as numpy array at target sample rate using soundfile/librosa."""
-    try:
-        import soundfile as sf
-        audio, sr = sf.read(audio_path)
-        # Convert stereo to mono
-        if len(audio.shape) > 1:
-            audio = audio.mean(axis=1)
-        # Resample if needed
-        if sr != target_sr:
-            import librosa
-            audio = librosa.resample(audio, orig_sr=sr, target_sr=target_sr)
-        return audio.astype(np.float32), target_sr
-    except Exception:
-        # Fallback to librosa (handles more formats)
-        import librosa
-        audio, sr = librosa.load(audio_path, sr=target_sr, mono=True)
-        return audio, sr
-
-
-def _kannada_stt(audio_path: str) -> dict:
-    """Transcribe Kannada audio using fine-tuned Whisper (direct model call)."""
-    model, processor = _load_kannada_stt()
-    device = next(model.parameters()).device
-
-    # Load audio ourselves (bypasses torchcodec entirely)
-    audio_array, sr = _load_audio(audio_path, target_sr=16000)
-    audio_duration = len(audio_array) / sr
+def _kannada_stt(audio_path: str, model_size: str = DEFAULT_WHISPER_MODEL) -> dict:
+    """Transcribe Kannada audio using OpenAI Whisper (multilingual model for low RAM compatibility)."""
+    model = _get_whisper_model(model_size)
 
     start_time = time.time()
-
-    # Process audio into model input features
-    input_features = processor(
-        audio_array, sampling_rate=16000, return_tensors="pt"
-    ).input_features.to(device)
-
-    # Generate transcription
-    with torch.no_grad():
-        predicted_ids = model.generate(input_features)
-
-    # Decode token IDs to text
-    transcript = processor.batch_decode(predicted_ids, skip_special_tokens=True)[0]
-
+    result = model.transcribe(audio_path, language="kn", verbose=False)
     elapsed = time.time() - start_time
 
+    segments = []
+    for seg in result.get("segments", []):
+        segments.append({
+            "start": round(seg["start"], 2),
+            "end": round(seg["end"], 2),
+            "text": seg["text"].strip(),
+        })
+
+    audio_duration = segments[-1]["end"] if segments else 0
+
     return {
-        "transcript": transcript.strip(),
+        "transcript": result["text"].strip(),
         "language": "kn",
         "processing_time_seconds": round(elapsed, 2),
         "audio_duration_seconds": round(audio_duration, 2),
-        "num_segments": 1,
-        "segments": [
-            {
-                "start": 0.0,
-                "end": round(audio_duration, 2),
-                "text": transcript.strip(),
-            }
-        ],
+        "num_segments": len(segments),
+        "segments": segments,
     }
 
 
